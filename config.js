@@ -4,10 +4,10 @@ export const CONFIG = {
   creator: { name: 'Ana', handle: '', url: '' },
 
   // Link to the GitHub repo, shown in the footer ("fork it on GitHub").
-  repoUrl: '',
+  repoUrl: 'https://github.com/anacrewator/souvenir',
 
   // Public address of the site, printed small on the story cards.
-  siteUrl: '',
+  siteUrl: 'https://anacrewator.github.io/souvenir/',
 
   // Optional: Google OAuth client ID to turn on "Pick from Google Photos".
   // See README → "Turn on the Google Photos picker". Leave empty to hide the button.

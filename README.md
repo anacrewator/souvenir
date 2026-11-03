@@ -4,6 +4,8 @@
 
 Everything runs in your browser. Your photos are never uploaded.
 
+**Try it: <https://anacrewator.github.io/souvenir/>**
+
 ## What it does
 
 - **Reads the date and place inside each file**: photo EXIF (JPG, HEIC, PNG, WebP and more), video metadata (MP4 and MOV, including iPhone and Android location), Google Takeout's `.json` files, and dates in file names like `IMG_20240815_…` or WhatsApp's `IMG-20240815-WA0001`.
