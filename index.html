@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>souvenir: your camera roll, sorted into trips</title>
+  <meta name="description" content="Drop in your camera roll and get it back sorted into trips, with place names. Runs in your browser, nothing gets uploaded.">
+  <meta property="og:title" content="souvenir">
+  <meta property="og:description" content="Your camera roll, sorted into trips. Nothing gets uploaded.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#FF6FAE">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Gochi+Hand&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <a class="skip" href="#start">Skip to the photo picker</a>
+
+  <div class="ticker" aria-hidden="true">
+    <div class="ticker-track">
+      <span>your camera roll, sorted into trips</span><span class="tick-flower">✿</span>
+      <span>nothing gets uploaded</span><span class="tick-flower">✿</span>
+      <span>works with folders, iPhone exports and Google Takeout</span><span class="tick-flower">✿</span>
+      <span>free and open source</span><span class="tick-flower">✿</span>
+      <span>your camera roll, sorted into trips</span><span class="tick-flower">✿</span>
+      <span>nothing gets uploaded</span><span class="tick-flower">✿</span>
+      <span>works with folders, iPhone exports and Google Takeout</span><span class="tick-flower">✿</span>
+      <span>free and open source</span><span class="tick-flower">✿</span>
+    </div>
+  </div>
+
+  <header class="hero gingham-pink">
+    <nav class="topnav" aria-label="Main">
+      <a href="#how">How it works</a>
+      <a href="#" id="repo-link" hidden>GitHub</a>
+    </nav>
+
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <h1 class="wordmark">souvenir</h1>
+        <p class="lede">Drop in your camera roll and get it back as trips. It reads when and where every photo and video was taken, works out where home is, and writes the place on each trip.</p>
+        <div class="hero-cta">
+          <a class="btn btn-primary btn-big" href="#start">Sort my photos</a>
+          <button class="btn" type="button" data-action="demo">Try a sample camera roll</button>
+        </div>
+      </div>
+
+      <div class="hero-art" aria-hidden="true">
+        <figure class="polaroid deco deco-1 tape"><div class="scene scene-sea"></div><figcaption>lisbon, june</figcaption></figure>
+        <figure class="polaroid deco deco-2 tape"><div class="scene scene-sakura"></div><figcaption>tokyo!!</figcaption></figure>
+        <figure class="polaroid deco deco-3"><div class="scene scene-desert"></div><figcaption>cdmx w/ the girls</figcaption></figure>
+        <div class="sticker sticker-round">stays on your device</div>
+        <svg class="doodle doodle-flower" viewBox="0 0 100 100"><use href="#flower"/></svg>
+        <svg class="doodle doodle-star" viewBox="0 0 100 100"><use href="#star"/></svg>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="start" class="sheet-wrap" aria-labelledby="start-title">
+      <div class="sheet torn-top">
+        <h2 id="start-title" class="section-title">Bring your photos</h2>
+
+        <div class="dropzone" id="dropzone" tabindex="-1">
+          <svg class="dz-icon" viewBox="0 0 100 100" aria-hidden="true"><use href="#camera"/></svg>
+          <p class="dz-big">Drop a folder or a pile of photos here</p>
+          <div class="dz-buttons">
+            <label class="btn btn-primary" id="pick-folder-label">
+              <input type="file" id="pick-folder" webkitdirectory directory multiple hidden>
+              Choose a folder
+            </label>
+            <label class="btn">
+              <input type="file" id="pick-files" multiple accept="image/*,video/*,.heic,.heif,.dng,.json" hidden>
+              Choose photos
+            </label>
+          </div>
+          <p class="dz-small">JPG, HEIC, PNG, MP4, MOV and more. Thousands are fine.</p>
+        </div>
+
+        <div class="sources">
+          <article class="note note-lime">
+            <h3>From Google Photos</h3>
+            <p>Export your library with Google Takeout, unzip it, and choose the folder here. Takeout keeps dates and places, so trips come out right.</p>
+            <p><a href="https://takeout.google.com/settings/takeout/custom/photos" target="_blank" rel="noopener">Open Google Takeout</a></p>
+            <div id="gp-box" hidden>
+              <button class="btn btn-small" type="button" id="gp-pick">Pick from Google Photos</button>
+              <p class="fine">Google's picker shares dates but not places, so these get sorted by date.</p>
+              <div id="gp-step" hidden>
+                <p>Choose your photos in the Google tab, then come back here.</p>
+                <a class="btn btn-small btn-primary" id="gp-open" target="_blank" rel="noopener" href="#">Open Google Photos</a>
+                <button class="linkish" type="button" id="gp-cancel">Cancel</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="note note-butter">
+            <h3>From an iPhone</h3>
+            <p>On a Mac: open Photos, select everything, then File, Export, Export Unmodified Originals. Choose that folder here.</p>
+            <p>On the phone: tap Choose photos. If you see Options at the top, turn on Location.</p>
+          </article>
+
+          <article class="note note-lilac">
+            <h3>No photos to hand?</h3>
+            <p>Try a made-up camera roll with three trips and a few months at home.</p>
+            <button class="btn btn-small" type="button" data-action="demo">Try a sample camera roll</button>
+          </article>
+        </div>
+
+        <p class="privacy">Your photos never leave this device. The only thing sent anywhere is the rough centre of each trip, so it can be named. You can switch that off in Settings.</p>
+      </div>
+    </section>
+
+    <section id="results" class="results" hidden aria-labelledby="results-title">
+      <div class="results-head sheet torn-top">
+        <div class="results-title-row">
+          <h2 id="results-title" class="section-title">Your camera roll, sorted</h2>
+          <button class="sticker sticker-home" type="button" id="home-sticker" hidden></button>
+        </div>
+        <ul class="stats" id="stats"></ul>
+        <div class="toolbar">
+          <button class="btn btn-primary" type="button" id="save-all">Save all as folders</button>
+          <button class="btn" type="button" id="zip-all">Download everything as ZIP</button>
+          <button class="btn" type="button" id="add-more">Add more photos</button>
+          <button class="btn" type="button" id="open-settings">Settings</button>
+          <button class="linkish" type="button" id="start-over">Start over</button>
+        </div>
+      </div>
+
+      <div class="tablecloth torn-top" id="trips">
+        <h2 class="band-title">Trips</h2>
+        <div class="trip-grid" id="trip-grid"></div>
+        <div class="empty-note note note-butter" id="trips-empty" hidden>
+          <h3>No trips found yet</h3>
+          <p id="trips-empty-text"></p>
+        </div>
+        <svg class="doodle doodle-cloth-1" viewBox="0 0 100 100" aria-hidden="true"><use href="#flower"/></svg>
+        <svg class="doodle doodle-cloth-2" viewBox="0 0 100 100" aria-hidden="true"><use href="#star"/></svg>
+      </div>
+
+      <div class="everyday sheet torn-top" id="everyday">
+        <h2 class="band-title">Everyday</h2>
+        <p class="band-sub">Everything from home, month by month.</p>
+        <div class="month-list" id="month-list"></div>
+        <div class="extras" id="extras"></div>
+      </div>
+    </section>
+
+    <section id="how" class="how gingham-lilac" aria-labelledby="how-title">
+      <h2 id="how-title" class="section-title">How it works</h2>
+      <ol class="how-notes">
+        <li class="note note-pink">
+          <h3>It reads every photo's label</h3>
+          <p>Phones save when and where each shot was taken, inside the file. Videos too. Google Takeout's extra files fill the gaps.</p>
+        </li>
+        <li class="note note-lime">
+          <h3>It works out where home is</h3>
+          <p>The place you take photos on the most days is home. Photos far from it, close together in time, become a trip.</p>
+        </li>
+        <li class="note note-butter">
+          <h3>You get the albums</h3>
+          <p>Rename them, flip through each day, save them as folders or a ZIP, or make a story card to post.</p>
+        </li>
+      </ol>
+    </section>
+  </main>
+
+  <footer class="footer torn-top">
+    <p class="footer-mark">souvenir</p>
+    <p id="credit">Made by Ana. Free and open source.</p>
+    <p class="fine">Runs in your browser. No accounts, no uploads, no tracking.</p>
+  </footer>
+
+  <!-- Album -->
+  <dialog id="album-dialog" class="album-dialog" aria-labelledby="album-title">
+    <div class="album-inner">
+      <header class="album-head gingham-pink">
+        <button class="btn btn-small close-btn" type="button" data-close>Close</button>
+        <div class="album-title-wrap">
+          <p class="album-flags" id="album-flags" aria-hidden="true"></p>
+          <input class="album-title" id="album-title" aria-label="Album name" spellcheck="false" autocomplete="off">
+          <p class="album-meta" id="album-meta"></p>
+        </div>
+        <div class="album-actions">
+          <button class="btn btn-primary btn-small" type="button" id="album-story">Make a story card</button>
+          <button class="btn btn-small" type="button" id="album-save">Save as folder</button>
+          <button class="btn btn-small" type="button" id="album-zip">Download ZIP</button>
+        </div>
+      </header>
+      <div class="album-map-wrap" id="album-map-wrap" hidden><div class="album-map" id="album-map"></div></div>
+      <div class="album-days" id="album-days"></div>
+    </div>
+  </dialog>
+
+  <!-- Lightbox -->
+  <dialog id="lightbox" class="lightbox" aria-label="Photo viewer">
+    <div class="lb-stage" id="lb-stage"></div>
+    <div class="lb-bar">
+      <button class="btn btn-small" type="button" id="lb-prev" aria-label="Previous">Prev</button>
+      <p class="lb-caption" id="lb-caption"></p>
+      <button class="btn btn-small" type="button" id="lb-next" aria-label="Next">Next</button>
+      <button class="btn btn-small" type="button" data-close>Close</button>
+    </div>
+  </dialog>
+
+  <!-- Settings -->
+  <dialog id="settings-dialog" class="small-dialog" aria-labelledby="settings-title">
+    <form method="dialog" id="settings-form" class="note note-paper">
+      <h2 id="settings-title">Sorting settings</h2>
+      <label class="field">
+        <span>Home</span>
+        <select name="home" id="set-home"></select>
+      </label>
+      <label class="field">
+        <span>Counts as a trip from <output id="out-radius"></output> away</span>
+        <input type="range" name="homeRadiusKm" min="15" max="400" step="5">
+      </label>
+      <label class="field">
+        <span>A trip ends after <output id="out-gap"></output> with no photos away</span>
+        <input type="range" name="gapHours" min="12" max="168" step="6">
+      </label>
+      <label class="field">
+        <span>Smallest trip: <output id="out-min"></output></span>
+        <input type="range" name="minTripItems" min="2" max="30" step="1">
+      </label>
+      <label class="check">
+        <input type="checkbox" name="onlineNames">
+        <span>Name places with an online map service. It only gets the rough centre of each trip, about 1 km off.</span>
+      </label>
+      <div class="dialog-buttons">
+        <button class="btn" value="cancel" type="submit">Cancel</button>
+        <button class="btn btn-primary" value="apply" type="submit">Re-sort</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Story card -->
+  <dialog id="story-dialog" class="small-dialog story-dialog" aria-label="Story card">
+    <div class="story-wrap">
+      <img id="story-img" alt="Story card preview">
+      <div class="dialog-buttons">
+        <button class="btn" type="button" data-close>Close</button>
+        <button class="btn" type="button" id="story-download">Download image</button>
+        <button class="btn btn-primary" type="button" id="story-share" hidden>Share</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="busy" class="busy" popover="manual" role="status" aria-live="polite">
+    <p id="busy-text"></p>
+    <div class="busy-bar" id="busy-bar"><span></span></div>
+  </div>
+  <div id="toast" class="toast" popover="manual" role="alert"></div>
+
+  <div class="drop-veil" id="drop-veil" aria-hidden="true"><p>Let go to sort these</p></div>
+
+  <!-- Doodles -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="flower" viewBox="0 0 100 100">
+        <g stroke="#2A1420" stroke-width="4">
+          <circle cx="50" cy="22" r="18" fill="currentColor"/><circle cx="77" cy="42" r="18" fill="currentColor"/>
+          <circle cx="66" cy="74" r="18" fill="currentColor"/><circle cx="34" cy="74" r="18" fill="currentColor"/>
+          <circle cx="23" cy="42" r="18" fill="currentColor"/><circle cx="50" cy="50" r="15" fill="#FFE066"/>
+        </g>
+      </symbol>
+      <symbol id="star" viewBox="0 0 100 100">
+        <path d="M50 6 L61 37 L94 38 L68 58 L77 91 L50 72 L23 91 L32 58 L6 38 L39 37 Z" fill="currentColor" stroke="#2A1420" stroke-width="4" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="camera" viewBox="0 0 100 100">
+        <g stroke="#2A1420" stroke-width="4" stroke-linejoin="round">
+          <rect x="10" y="28" width="80" height="56" rx="10" fill="#FF6FAE"/>
+          <path d="M34 28 L40 16 H60 L66 28 Z" fill="#FFE066"/>
+          <circle cx="50" cy="56" r="17" fill="#FFFDF8"/><circle cx="50" cy="56" r="8" fill="#2A1420"/>
+          <circle cx="78" cy="38" r="4" fill="#FFFDF8"/>
+        </g>
+      </symbol>
+    </defs>
+  </svg>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
