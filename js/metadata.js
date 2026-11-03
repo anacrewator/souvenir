@@ -216,7 +216,7 @@ export async function extractAll(entries, onProgress) {
       if (sc) applySidecar(item, sc);
     }
     finish(item);
-    onProgress?.(++done, media.length);
+    onProgress?.(++done, media.length, item);
   });
   return media;
 }

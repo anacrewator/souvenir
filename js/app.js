@@ -7,6 +7,7 @@ import { canSaveToFolder, saveToFolder, downloadZip } from './export.js';
 import { makeStoryCard } from './story.js';
 import { makeDemoLibrary } from './demo.js';
 import { googleEnabled, startSession, waitForSelection, listSelection } from './google-photos.js';
+import { showEnabled, showActive, startShow, feedShow, sortShow, renameInShow, endShow, wireShow } from './sort-show.js';
 import {
   $, $$, el, busy, toast, plural, fmtRange, fmtLongDay, fmtDateTime, fmtMonth, dayKey, monthKey,
   loadScript, loadCss, saveBlob, sanitizeName, prefersReducedMotion,
@@ -65,14 +66,18 @@ async function ingest(entries) {
     return;
   }
   state.working = true;
-  busy.show(`Reading ${plural(mediaCount, 'file')}`, 0);
+  const animate = showEnabled();
+  if (animate) startShow(mediaCount, { onClose: revealResults });
+  else busy.show(`Reading ${plural(mediaCount, 'file')}`, 0);
   try {
-    const items = await extractAll(entries, (done, total) => {
-      if (done % 5 === 0 || done === total) busy.show(`Reading dates and places: ${done.toLocaleString()} of ${total.toLocaleString()}`, done / total);
+    const items = await extractAll(entries, (done, total, item) => {
+      if (animate) feedShow(item, done);
+      else if (done % 5 === 0 || done === total) busy.show(`Reading dates and places: ${done.toLocaleString()} of ${total.toLocaleString()}`, done / total);
     });
     addItems(items);
   } catch (e) {
     console.error(e);
+    endShow();
     toast(`Couldn't read those files: ${e.message}`);
   } finally {
     busy.hide();
@@ -90,11 +95,17 @@ function addItems(items) {
     register(it);
     added++;
   }
-  if (!state.items.length) return;
+  if (!state.items.length) { endShow(); return; }
   resort();
   $('#results').hidden = false;
-  requestAnimationFrame(() => $('#results').scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' }));
+  if (showActive()) sortShow(state.lib, { titleOf: titleFor, flagsOf: flagsFor });
+  else revealResults();
   if (items.length && !added) toast('Those were already here, so nothing new was added.');
+}
+
+function revealResults() {
+  if (!state.lib) return;
+  requestAnimationFrame(() => $('#results').scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' }));
 }
 
 function resort() {
@@ -135,6 +146,7 @@ function refreshTrip(t) {
   const old = document.querySelector(`.trip-card[data-album="${t.id}"]`);
   if (old) old.replaceWith(tripCard(t));
   if (state.album === t) renderAlbumHead(t);
+  renameInShow(t.id, titleFor(t), flagsFor(t));
 }
 
 // ---------- rendering: results ----------
@@ -580,7 +592,20 @@ function wire() {
     if (state.working) return;
     state.working = true;
     busy.show('Painting a sample camera roll', null);
-    try { addItems(await makeDemoLibrary()); } finally { busy.hide(); state.working = false; }
+    try {
+      const lib = await makeDemoLibrary();
+      busy.hide();
+      if (showEnabled()) {
+        // Shuffle so the heap looks like a real, messy camera roll.
+        const shuffled = [...lib].sort(() => Math.random() - 0.5);
+        startShow(shuffled.length, { onClose: revealResults });
+        for (let i = 0; i < shuffled.length && showActive(); i++) {
+          feedShow(shuffled[i], i + 1);
+          await new Promise((r) => setTimeout(r, 28));
+        }
+      }
+      addItems(lib);
+    } finally { busy.hide(); state.working = false; }
   }));
 
   if (googleEnabled()) {
@@ -652,6 +677,7 @@ function wire() {
   });
 
   setupDrop();
+  wireShow();
 }
 
 wire();

@@ -247,6 +247,22 @@
     </div>
   </dialog>
 
+  <!-- Sorting scene -->
+  <dialog id="sort-show" class="sort-show gingham-pink" aria-labelledby="show-title">
+    <div class="show-top" role="status" aria-live="polite">
+      <h2 id="show-title" class="show-title">Reading your photos</h2>
+      <p class="show-sub" id="show-sub"></p>
+      <div class="busy-bar show-bar" id="show-bar"><span></span></div>
+    </div>
+    <div class="show-heap" aria-hidden="true"></div>
+    <div class="show-piles" id="show-piles" aria-hidden="true"></div>
+    <div class="show-actions">
+      <button class="btn btn-primary" type="button" id="show-continue" hidden>See my trips</button>
+      <button class="linkish" type="button" id="show-skip">Skip</button>
+    </div>
+    <div class="show-layer" aria-hidden="true"></div>
+  </dialog>
+
   <div id="busy" class="busy" popover="manual" role="status" aria-live="polite">
     <p id="busy-text"></p>
     <div class="busy-bar" id="busy-bar"><span></span></div>

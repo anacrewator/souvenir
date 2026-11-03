@@ -47,10 +47,19 @@ export function flagOf(cc) {
 export async function describeTrip(trip, opts) {
   if (!trip.places.length) return null;
   const total = trip.places.reduce((s, p) => s + p.count, 0);
-  const picks = trip.places.filter((p, i) => i === 0 || p.count / total >= 0.15).slice(0, 4);
-  const named = (await Promise.all(picks.map((p) => lookupPlace(p.lat, p.lon, opts)))).filter(Boolean);
+  const picks = trip.places.filter((p, i) => i === 0 || p.count / total >= 0.1).slice(0, 6);
+  const looked = await Promise.all(picks.map((p) => lookupPlace(p.lat, p.lon, opts)));
+  const named = looked.filter(Boolean);
   if (!named.length) return null;
-  const cities = [...new Set(named.map((n) => n.city || n.region || n.country).filter(Boolean))].slice(0, 3);
+  // One city can span several ~25 km cells, so add their photo counts up before ranking.
+  const byCity = new Map();
+  looked.forEach((n, i) => {
+    const name = n && (n.city || n.region || n.country);
+    if (name) byCity.set(name, (byCity.get(name) || 0) + picks[i].count);
+  });
+  const cities = [...byCity.entries()].filter(([, c]) => c / total >= 0.15 || byCity.size === 1)
+    .sort((a, b) => b[1] - a[1]).map(([name]) => name).slice(0, 3);
+  if (!cities.length) cities.push([...byCity.keys()][0]);
   const countries = [...new Map(named.filter((n) => n.country).map((n) => [n.cc || n.country, n])).values()]
     .map((n) => ({ name: n.country, cc: n.cc }));
   let title = '';

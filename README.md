@@ -12,6 +12,7 @@ Everything runs in your browser. Your photos are never uploaded.
 - **Works out where home is**: the place you took photos on the most days. Photos far from home and close together in time become a trip. Photos without GPS join a trip when the photos around them are on it.
 - **Names trips**: "Lisbon", "Tokyo & Kyoto", with flags, a map and a day-by-day view.
 - **No GPS at all?** It still guesses trips from runs of days with lots of photos, and marks them as guesses.
+- **Watch it sort**: your photos land in a messy heap while they are read, then fly into a pile per trip, with the city names popping in as places are found. Skipped for people who turn off animations.
 - **Rename** any trip. Names are remembered on your device.
 - **Save** everything as real folders (`Trips/2026-06 Lisbon/…`, `Everyday/2026-03 March/…`) straight to your computer in Chrome or Edge, or download a ZIP in any browser.
 - **Story card**: a 1080×1920 scrapbook image of a trip, ready for Instagram. On phones it opens the share sheet.
@@ -75,6 +76,7 @@ js/thumbs.js        previews and the photo viewer
 js/export.js        save as folders or ZIP
 js/story.js         the story card
 js/google-photos.js optional Google Photos picker
+js/sort-show.js     the sorting animation (messy heap → piles)
 js/demo.js          the sample camera roll
 ```
 
