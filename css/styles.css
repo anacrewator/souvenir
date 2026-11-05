@@ -261,6 +261,25 @@ button, input, select { font: inherit; color: inherit; }
 .dz-buttons { display: flex; justify-content: center; flex-wrap: wrap; gap: 14px; margin: 20px 0 14px; }
 .dz-buttons label:focus-within { outline: 3px solid var(--ink); outline-offset: 3px; }
 .dz-small { font-size: .95rem; opacity: .8; }
+.basket { margin: 6px auto 18px; max-width: 640px; }
+.basket-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.basket-chip {
+  display: inline-flex; align-items: center; gap: .55em;
+  padding: .45em .5em .45em .95em;
+  background: var(--butter); border: 2px solid var(--ink); border-radius: 6px 6px 6px 0;
+  box-shadow: 2px 3px 0 var(--ink); max-width: 100%;
+}
+.basket-chip:nth-child(3n+2) { background: var(--lime); transform: rotate(1deg); }
+.basket-chip:nth-child(3n) { background: var(--lilac); transform: rotate(-1deg); }
+.basket-chip:first-child { transform: rotate(-1.2deg); }
+.basket-name { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 15em; }
+.basket-count { font-size: .9rem; opacity: .75; white-space: nowrap; }
+.basket-x {
+  width: 30px; height: 30px; flex: none; border-radius: 50%; border: 2px solid var(--ink);
+  background: var(--paper); font-weight: 800; font-size: 1rem; line-height: 1; cursor: pointer;
+}
+.basket-x:hover { background: var(--blush); }
+.basket-go { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px 18px; margin-top: 18px; }
 
 .sources { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 34px; }
 .note {

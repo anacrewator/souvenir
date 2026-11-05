@@ -8,6 +8,7 @@ Everything runs in your browser. Your photos are never uploaded.
 
 ## What it does
 
+- **Opens iPhone HEIC photos in any browser**: Chrome, Edge and Firefox can't show HEIC on their own, so the app decodes them with [libheif](https://github.com/strukturag/libheif) (through `heic-to`), in a background worker, only when it finds one.
 - **Reads the date and place inside each file**: photo EXIF (JPG, HEIC, PNG, WebP and more), video metadata (MP4 and MOV, including iPhone and Android location), Google Takeout's `.json` files, and dates in file names like `IMG_20240815_…` or WhatsApp's `IMG-20240815-WA0001`.
 - **Works out where home is**: the place you took photos on the most days. Photos far from home and close together in time become a trip. Photos without GPS join a trip when the photos around them are on it.
 - **Names trips**: "Lisbon", "Tokyo & Kyoto", with flags, a map and a day-by-day view.
@@ -22,7 +23,7 @@ Everything runs in your browser. Your photos are never uploaded.
 
 | From | How |
 | --- | --- |
-| A folder on your computer | Click **Choose a folder**, or drag the folder onto the page. |
+| Folders on your computer | Click **Choose a folder**, then **Add another folder** as many times as you like, and **Sort** them all together. Or drag several folders onto the page at once. |
 | Google Photos | Export with [Google Takeout](https://takeout.google.com/settings/takeout/custom/photos), unzip, choose the folder. Takeout includes dates and places. |
 | iPhone, on a Mac | In Photos: select all, then File › Export › **Export Unmodified Originals**. Choose that folder. |
 | iPhone or Android, on the phone | Tap **Choose photos**. On iPhone, if you see **Options**, turn on **Location**, or the phone strips it. |
@@ -58,7 +59,7 @@ While the consent screen is in "Testing", only the Google accounts you list as t
 ## Security
 
 - **Hosting**: a static site on GitHub Pages. No server, database or open ports of our own. GitHub serves it over HTTPS.
-- **Outside services the page talks to**: jsDelivr (EXIF reader), cdnjs (ZIP and map libraries), Google Fonts, BigDataCloud (place names, can be turned off), OpenStreetMap tiles, and Google sign-in/Photos only if you turn on the picker.
+- **Outside services the page talks to**: jsDelivr (EXIF reader, and the HEIC decoder when there are HEIC photos), cdnjs (ZIP and map libraries), Google Fonts, BigDataCloud (place names, can be turned off), OpenStreetMap tiles, and Google sign-in/Photos only if you turn on the picker.
 - **Secrets**: none. `config.js` only holds public values. Don't add API secrets to this repo.
 - **How to check**: open the browser's developer tools › Network tab while sorting. You'll see no uploads of your files, only the requests listed above.
 

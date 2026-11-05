@@ -364,7 +364,7 @@ async function showLightbox() {
   if (token !== lb.token) { media.cleanup(); return; }
   lb.cleanup = media.cleanup;
   stage.replaceChildren(media.el);
-  if (media.preview) cap.append(el('span', { class: 'fine', style: 'display:block' }, 'Showing the small preview. This browser can’t open the full file (Safari can open HEIC).'));
+  if (media.preview) cap.append(el('span', { class: 'fine', style: 'display:block' }, 'Showing the small preview. This browser can’t open the full file.'));
 }
 
 function stepLightbox(delta) {
@@ -489,6 +489,58 @@ function startOver() {
   $('#start').scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
 }
 
+// ---------- folders waiting to be sorted ----------
+// Browsers only let you choose one folder per click, so picks collect here and get
+// sorted together in one go.
+const basket = [];
+const mediaIn = (entries) => entries.filter((e) => ['image', 'video'].includes(kindOf(e.file))).length;
+
+function labelOf(entries) {
+  const tops = [...new Set(entries.filter((e) => e.path.includes('/')).map((e) => e.path.split('/')[0]))];
+  if (tops.length === 1) return tops[0];
+  if (tops.length > 1) return `${tops[0]} and ${plural(tops.length - 1, 'more folder')}`;
+  return 'Photos you picked';
+}
+
+function queue(entries) {
+  const count = mediaIn(entries);
+  if (!count) {
+    toast("That didn't include any photos or videos. Try choosing the folder that holds them.");
+    return;
+  }
+  const label = labelOf(entries);
+  const sig = `${label}|${entries.length}`;
+  if (basket.some((b) => b.sig === sig)) { toast(`${label} is already on the list.`); return; }
+  basket.push({ label, entries, count, sig });
+  renderBasket();
+}
+
+function renderBasket() {
+  const has = basket.length > 0;
+  $('#basket').hidden = !has;
+  $('#pick-folder-text').textContent = has ? 'Add another folder' : 'Choose a folder';
+  $('#pick-files-text').textContent = has ? 'Add photos' : 'Choose photos';
+  $('#pick-folder-label').classList.toggle('btn-primary', !has);
+  $('#dz-big').textContent = has ? 'Add more, or sort what’s here' : 'Drop folders or a pile of photos here';
+  $('#dz-small').textContent = has
+    ? 'You can also drag several folders in at once.'
+    : 'Add as many folders as you like, then sort them together. JPG, HEIC, PNG, MP4, MOV and more.';
+  const total = basket.reduce((s, b) => s + b.count, 0);
+  $('#basket-sort').textContent = `Sort ${plural(total, 'photo')}`;
+  $('#basket-list').replaceChildren(...basket.map((b, i) => el('li', { class: 'basket-chip' },
+    el('span', { class: 'basket-name', title: b.label }, b.label),
+    el('span', { class: 'basket-count' }, b.count.toLocaleString()),
+    el('button', { class: 'basket-x', type: 'button', 'aria-label': `Remove ${b.label}`, 'data-i': String(i) }, '×'))));
+}
+
+function sortBasket() {
+  if (!basket.length || state.working) return;
+  const all = basket.flatMap((b) => b.entries);
+  basket.length = 0;
+  renderBasket();
+  ingest(all);
+}
+
 // ---------- drag & drop ----------
 async function entriesFromDrop(dt) {
   const roots = [...(dt.items || [])].map((i) => (i.kind === 'file' && i.webkitGetAsEntry ? i.webkitGetAsEntry() : null)).filter(Boolean);
@@ -533,7 +585,9 @@ function setupDrop() {
     document.body.classList.remove('dragging');
     dz.classList.remove('over');
     const entries = await entriesFromDrop(e.dataTransfer);
-    ingest(entries);
+    // A drop can hold several folders already, so it sorts straight away,
+    // unless there's a list waiting: then it joins the list.
+    if (basket.length) { queue(entries); $('#start').scrollIntoView({ block: 'center' }); } else ingest(entries);
   });
   dz.addEventListener('dragover', () => dz.classList.add('over'));
   dz.addEventListener('dragleave', () => dz.classList.remove('over'));
@@ -580,12 +634,21 @@ function wire() {
   const folderInput = $('#pick-folder');
   if (!('webkitdirectory' in folderInput)) $('#pick-folder-label').hidden = true;
   folderInput.addEventListener('change', (e) => {
-    ingest([...e.target.files].map((f) => ({ file: f, path: f.webkitRelativePath || f.name })));
+    queue([...e.target.files].map((f) => ({ file: f, path: f.webkitRelativePath || f.name })));
     e.target.value = '';
   });
   $('#pick-files').addEventListener('change', (e) => {
-    ingest([...e.target.files].map((f) => ({ file: f, path: f.name })));
+    queue([...e.target.files].map((f) => ({ file: f, path: f.name })));
     e.target.value = '';
+  });
+  $('#basket-sort').addEventListener('click', sortBasket);
+  $('#basket-clear').addEventListener('click', () => { basket.length = 0; renderBasket(); });
+  $('#basket-list').addEventListener('click', (e) => {
+    const x = e.target.closest('.basket-x');
+    if (!x) return;
+    basket.splice(Number(x.dataset.i), 1);
+    renderBasket();
+    (basket.length ? $('#basket-sort') : $('#dropzone')).focus();
   });
 
   $$('[data-action="demo"]').forEach((b) => b.addEventListener('click', async () => {

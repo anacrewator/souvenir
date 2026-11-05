@@ -49,7 +49,31 @@ async function embeddedThumb(blob) {
   return t ? new Blob([t], { type: 'image/jpeg' }) : null;
 }
 
-async function imageThumb(blob, size) {
+// Chrome, Firefox and Edge can't open iPhone HEIC photos, and iPhones don't tuck a JPEG
+// preview inside them. So those get decoded with libheif (via heic-to), loaded only when
+// the first HEIC shows up. It decodes in a background worker, so scrolling stays smooth.
+const HEIC_LIB = 'https://cdn.jsdelivr.net/npm/heic-to@1.6.6/dist/heic-to.js';
+let heicLib = null;
+const loadHeic = () => (heicLib ??= import(HEIC_LIB).catch((e) => { heicLib = null; throw e; }));
+const HEIC_EXT = /\.(heic|heif)$/i;
+const looksHeic = (blob, name = '') => HEIC_EXT.test(name || blob.name || '') || /hei[cf]/i.test(blob.type || '');
+
+async function heicScaled(blob, size) {
+  const { heicTo } = await loadHeic();
+  const bmp = await heicTo({ blob, type: 'bitmap' });
+  try { return await drawScaled(bmp, bmp.width, bmp.height, size); } finally { bmp.close?.(); }
+}
+
+// Opens any photo the browser can't: HEIC through libheif, then the camera's own small preview.
+async function fallbackImage(blob, size, name) {
+  if (looksHeic(blob, name)) {
+    const b = await heicScaled(blob, size).catch(() => null);
+    if (b) return b;
+  }
+  return embeddedThumb(blob);
+}
+
+async function imageThumb(blob, size, name) {
   const url = URL.createObjectURL(blob);
   try {
     const img = new Image();
@@ -57,8 +81,7 @@ async function imageThumb(blob, size) {
     await img.decode();
     return track(await drawScaled(img, img.naturalWidth, img.naturalHeight, size));
   } catch {
-    // e.g. HEIC outside Safari: use the small JPEG the camera tucked inside the file.
-    return track(await embeddedThumb(blob));
+    return track(await fallbackImage(blob, size, name));
   } finally {
     URL.revokeObjectURL(url);
   }
@@ -96,7 +119,7 @@ export function thumbUrl(item, size = 480) {
     thumbs.set(item.id, slot(async () => {
       if (item.fetchThumb) return track(await item.fetchThumb());
       if (item.kind === 'video') return videoThumb(item.file, size);
-      return imageThumb(item.file, size);
+      return imageThumb(item.file, size, item.name);
     }).catch(() => null));
   }
   return thumbs.get(item.id);
@@ -145,6 +168,15 @@ export async function fullMedia(item) {
       await img.decode();
       return { el: img, cleanup: () => URL.revokeObjectURL(url) };
     } catch { URL.revokeObjectURL(url); }
+    if (looksHeic(item.file, item.name)) {
+      const b = await heicScaled(item.file, 2400).catch(() => null);
+      if (b) {
+        const big = URL.createObjectURL(b);
+        const im = el('img', { alt: item.name });
+        im.src = big;
+        return { el: im, cleanup: () => URL.revokeObjectURL(big) };
+      }
+    }
   } else if (item.fetchLarge) {
     const blob = await item.fetchLarge().catch(() => null);
     if (blob) {
@@ -170,7 +202,11 @@ export async function drawable(item) {
       await img.decode();
       const b = await drawScaled(img, img.naturalWidth, img.naturalHeight, 1200);
       return await loadImg(URL.createObjectURL(b), true);
-    } catch { /* fall through to thumb */ } finally { URL.revokeObjectURL(url); }
+    } catch { /* try HEIC below */ } finally { URL.revokeObjectURL(url); }
+    if (looksHeic(item.file, item.name)) {
+      const b = await heicScaled(item.file, 1200).catch(() => null);
+      if (b) return loadImg(URL.createObjectURL(b), true);
+    }
   }
   if (item.fetchLarge) {
     const b = await item.fetchLarge().catch(() => null);

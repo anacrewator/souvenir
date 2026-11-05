@@ -65,18 +65,25 @@
 
         <div class="dropzone" id="dropzone" tabindex="-1">
           <svg class="dz-icon" viewBox="0 0 100 100" aria-hidden="true"><use href="#camera"/></svg>
-          <p class="dz-big">Drop a folder or a pile of photos here</p>
+          <p class="dz-big" id="dz-big">Drop folders or a pile of photos here</p>
           <div class="dz-buttons">
             <label class="btn btn-primary" id="pick-folder-label">
               <input type="file" id="pick-folder" webkitdirectory directory multiple hidden>
-              Choose a folder
+              <span id="pick-folder-text">Choose a folder</span>
             </label>
-            <label class="btn">
+            <label class="btn" id="pick-files-label">
               <input type="file" id="pick-files" multiple accept="image/*,video/*,.heic,.heif,.dng,.json" hidden>
-              Choose photos
+              <span id="pick-files-text">Choose photos</span>
             </label>
           </div>
-          <p class="dz-small">JPG, HEIC, PNG, MP4, MOV and more. Thousands are fine.</p>
+          <div class="basket" id="basket" hidden>
+            <ul class="basket-list" id="basket-list" aria-label="Ready to sort"></ul>
+            <div class="basket-go">
+              <button class="btn btn-primary btn-big" type="button" id="basket-sort">Sort them</button>
+              <button class="linkish" type="button" id="basket-clear">Clear the list</button>
+            </div>
+          </div>
+          <p class="dz-small" id="dz-small">Add as many folders as you like, then sort them together. JPG, HEIC, PNG, MP4, MOV and more.</p>
         </div>
 
         <div class="sources">
