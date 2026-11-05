@@ -2,35 +2,16 @@
 // Needs CONFIG.googleClientId (see README). Google doesn't share GPS through the picker,
 // so these are sorted by date only. For trips with places, Google Takeout is better.
 import { CONFIG } from '../config.js';
-import { loadScript, sleep } from './util.js';
+import { sleep } from './util.js';
+import { googleConfigured, getToken } from './google-auth.js';
 import { newId, validDate } from './metadata.js';
 
 const SCOPE = 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly';
 const API = 'https://photospicker.googleapis.com/v1';
 
-export const googleEnabled = () => Boolean(CONFIG.googleClientId);
+export const googleEnabled = () => googleConfigured() && Boolean(CONFIG.googlePhotosPicker);
 
 let token = null;
-let tokenExpires = 0;
-
-async function getToken() {
-  if (token && Date.now() < tokenExpires) return token;
-  await loadScript('https://accounts.google.com/gsi/client');
-  return new Promise((resolve, reject) => {
-    const client = window.google.accounts.oauth2.initTokenClient({
-      client_id: CONFIG.googleClientId,
-      scope: SCOPE,
-      callback: (r) => {
-        if (r.error) return reject(new Error(r.error_description || r.error));
-        token = r.access_token;
-        tokenExpires = Date.now() + (Number(r.expires_in || 3600) - 60) * 1000;
-        resolve(token);
-      },
-      error_callback: (e) => reject(new Error(e?.type === 'popup_closed' ? 'Google sign-in was closed.' : 'Google sign-in failed.')),
-    });
-    client.requestAccessToken();
-  });
-}
 
 async function api(path, init = {}) {
   const r = await fetch(API + path, {
@@ -44,7 +25,7 @@ async function api(path, init = {}) {
 const seconds = (s, fallback) => (s ? parseFloat(String(s)) * 1000 : fallback);
 
 export async function startSession() {
-  await getToken();
+  token = await getToken(SCOPE);
   return api('/sessions', { method: 'POST', body: '{}' });
 }
 

@@ -588,6 +588,22 @@ dialog::backdrop { background: rgba(42, 20, 32, .55); }
 .check input { width: 22px; height: 22px; accent-color: var(--cherry); flex: none; margin-top: 2px; }
 .dialog-buttons { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
 
+.share-meta { font-weight: 600; opacity: .8; margin-top: -8px; }
+.share-way { margin-top: 22px; padding-top: 20px; border-top: 2px dashed rgba(42, 20, 32, .3); }
+.share-way h3 { font-size: 1.15rem; font-weight: 800; margin-bottom: 6px; }
+.share-way p { font-size: .95rem; }
+.share-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 14px; }
+.share-done { margin-top: 14px; padding: 14px; background: var(--lime); border: 2px solid var(--ink); border-radius: 10px; }
+.share-done .fine { margin-top: 0; }
+.link-row { display: flex; gap: 8px; margin-top: 8px; }
+.link-field { flex: 1; min-width: 0; padding: .55em .7em; border: 2px solid var(--ink); border-radius: 8px; background: #fff; font: inherit; font-size: .9rem; }
+.share-progress { margin-top: 14px; }
+.share-progress p { font-weight: 700; }
+.share-dialog .note { max-height: calc(100vh - 40px); overflow-y: auto; }
+@media (max-width: 520px) {
+  .small-dialog .note { padding: 22px 18px; }
+  .link-row { flex-direction: column; }
+}
 .story-dialog { max-width: min(460px, calc(100vw - 32px)); }
 .story-wrap { background: var(--paper); border: 2.5px solid var(--ink); border-radius: 16px; padding: 18px; }
 .story-wrap img { width: 100%; max-height: 68vh; object-fit: contain; border-radius: 8px; background: var(--blush); }

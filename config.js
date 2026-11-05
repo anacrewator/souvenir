@@ -9,7 +9,10 @@ export const CONFIG = {
   // Public address of the site, printed small on the story cards.
   siteUrl: 'https://anacrewator.github.io/souvenir/',
 
-  // Optional: Google OAuth client ID to turn on "Pick from Google Photos".
-  // See README → "Turn on the Google Photos picker". Leave empty to hide the button.
+  // Optional: Google OAuth client ID. It turns on "Share with friends → Google Drive".
+  // See README → "Turn on Google Drive sharing". A client ID is public; never put a secret here.
   googleClientId: '',
+
+  // Also show "Pick from Google Photos" (needs the Photos Picker API on the same client ID).
+  googlePhotosPicker: false,
 };

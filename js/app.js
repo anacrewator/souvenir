@@ -7,6 +7,9 @@ import { canSaveToFolder, saveToFolder, downloadZip } from './export.js';
 import { makeStoryCard } from './story.js';
 import { makeDemoLibrary } from './demo.js';
 import { googleEnabled, startSession, waitForSelection, listSelection } from './google-photos.js';
+import { driveEnabled, shareToDrive } from './drive.js';
+import { preloadGoogle } from './google-auth.js';
+import { withoutLocation } from './strip-location.js';
 import { showEnabled, showActive, startShow, feedShow, sortShow, renameInShow, endShow, wireShow } from './sort-show.js';
 import {
   $, $$, el, busy, toast, plural, fmtRange, fmtLongDay, fmtDateTime, fmtMonth, dayKey, monthKey,
@@ -432,6 +435,160 @@ async function openStory(a) {
   }
 }
 
+// ---------- sharing a trip with friends ----------
+const SHARED_KEY = 'souvenir:shared:v1';
+const shared = readJSON(SHARED_KEY, {}); // album id -> { link, at, count, strip }
+const share = { album: null, abort: null, ready: null, busy: false };
+
+const fmtSize = (b) => (b >= 1e9 ? `${(b / 1e9).toFixed(1)} GB` : `${Math.max(1, Math.round(b / 1e6))} MB`);
+function canShareFiles() {
+  try { return Boolean(navigator.canShare && navigator.canShare({ files: [new File(['x'], 'x.jpg', { type: 'image/jpeg' })] })); } catch { return false; }
+}
+
+function openShare(a) {
+  share.album = a;
+  share.ready = null;
+  const bytes = a.items.reduce((s, i) => s + (i.size || 0), 0);
+  $('#share-title').textContent = `Share ${titleFor(a)}`;
+  $('#share-meta').textContent = `${countLine(a)}${bytes ? `, about ${fmtSize(bytes)}` : ''}`;
+  const drive = driveEnabled();
+  const phone = canShareFiles();
+  $('#way-drive').hidden = !drive;
+  $('#way-phone').hidden = !phone;
+  $('#way-none').hidden = drive || phone;
+  $('#share-strip').closest('.check').hidden = !drive && !phone;
+  if (drive) preloadGoogle();
+  $('#drive-progress').hidden = true;
+  renderDriveDone();
+  resetPhone();
+  $('#share-dialog').showModal();
+}
+
+function resetPhone() {
+  const a = share.album;
+  share.ready = null;
+  $('#phone-go').textContent = `Send ${plural(a.items.length, 'file')}`;
+  $('#phone-status').textContent = a.items.length > 60 ? 'Big trips can be too much for chat apps. The Drive link is easier for those.' : '';
+}
+
+function renderDriveDone() {
+  const s = share.album && shared[share.album.id];
+  $('#drive-done').hidden = !s;
+  $('#drive-go').textContent = s ? 'Upload again' : 'Upload to Google Drive';
+  $('#drive-go').classList.toggle('btn-primary', !s);
+  if (!s) return;
+  const when = new Date(s.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  $('#drive-when').textContent = `Shared on ${when}: ${plural(s.count, 'file')}${s.strip ? ', without locations' : ', with locations'}.`;
+  $('#drive-link').value = s.link;
+  $('#drive-open').href = s.link;
+  $('#drive-send').hidden = !navigator.share;
+}
+
+// A copy of the file to send, without its location when that's ticked. null = leave it out.
+async function fileToSend(item, strip, skipped) {
+  let file = item.file || (item.fetchBlob ? await item.fetchBlob().catch(() => null) : null);
+  if (!file) return null;
+  if (!(file instanceof File)) file = new File([file], item.name, { type: file.type });
+  if (!strip) return file;
+  const r = await withoutLocation(file, item.kind).catch(() => ({ ok: false }));
+  if (!r.ok) { skipped.push(item.name); return null; }
+  return r.file;
+}
+
+const byDate = (items) => [...items].sort((x, y) => (x.date?.getTime() ?? 0) - (y.date?.getTime() ?? 0));
+
+function leftOutNote(skipped, failed = 0) {
+  const notes = [];
+  if (skipped.length) notes.push(`${plural(skipped.length, 'file')} left out because the location couldn’t be removed`);
+  if (failed > 0) notes.push(`${plural(failed, 'file')} didn’t upload`);
+  return notes.length ? ` ${notes.join('; ')}.` : '';
+}
+
+async function driveFlow() {
+  const a = share.album;
+  if (!a || share.busy) return;
+  share.busy = true;
+  const strip = $('#share-strip').checked;
+  const skipped = [];
+  const ctrl = new AbortController();
+  share.abort = ctrl;
+  const bar = $('#drive-progress .busy-bar');
+  const status = $('#drive-status');
+  $('#drive-progress').hidden = false;
+  $('#drive-go').disabled = true;
+  $('#drive-stop').hidden = false;
+  bar.classList.add('indeterminate');
+  status.textContent = 'Waiting for Google sign-in';
+  try {
+    const items = byDate(a.items);
+    const res = await shareToDrive({
+      folderName: folderFor(a).path.at(-1),
+      files: items.map((it) => ({ name: it.name, date: it.date, get: () => fileToSend(it, strip, skipped) })),
+      signal: ctrl.signal,
+      onProgress: (done, total) => {
+        bar.classList.remove('indeterminate');
+        bar.style.setProperty('--p', Math.max(0.02, done / total));
+        status.textContent = `Uploading ${done.toLocaleString()} of ${total.toLocaleString()}`;
+      },
+    });
+    shared[a.id] = { link: res.link, at: Date.now(), count: res.uploaded, strip };
+    writeJSON(SHARED_KEY, shared);
+    renderDriveDone();
+    toast(`Shared. Copy the link and send it to your friends.${leftOutNote(skipped, res.failed.length - skipped.length)}`, 8000);
+  } catch (e) {
+    if (e?.name === 'AbortError') toast('Stopped. What was already uploaded is in your Drive, but not shared.');
+    else { console.error(e); toast(e.message || 'Sharing didn’t work.'); }
+  } finally {
+    share.busy = false;
+    share.abort = null;
+    $('#drive-progress').hidden = true;
+    $('#drive-go').disabled = false;
+    $('#drive-stop').hidden = true;
+  }
+}
+
+async function phoneFlow() {
+  const a = share.album;
+  if (!a || share.busy) return;
+  const strip = $('#share-strip').checked;
+  const status = $('#phone-status');
+  const title = titleFor(a);
+  // Files are got ready first. If that took too long, the browser wants a fresh tap to open the menu.
+  if (!share.ready) {
+    share.busy = true;
+    $('#phone-go').disabled = true;
+    const skipped = [];
+    const files = [];
+    try {
+      const items = byDate(a.items);
+      for (let i = 0; i < items.length; i++) {
+        status.textContent = `Getting the files ready: ${i + 1} of ${items.length}`;
+        const f = await fileToSend(items[i], strip, skipped);
+        if (f) files.push(f);
+      }
+    } finally {
+      share.busy = false;
+      $('#phone-go').disabled = false;
+    }
+    if (!files.length) { status.textContent = `Nothing to send.${leftOutNote(skipped)}`; return; }
+    share.ready = { files, note: leftOutNote(skipped) };
+    $('#phone-go').textContent = `Send ${plural(files.length, 'file')} now`;
+  }
+  const { files, note } = share.ready;
+  if (!navigator.canShare({ files })) {
+    status.textContent = 'That’s too many files for this device’s share menu. Use the Drive link instead.';
+    return;
+  }
+  try {
+    await navigator.share({ files, title });
+    status.textContent = `Sent.${note}`;
+  } catch (e) {
+    if (e?.name === 'NotAllowedError') status.textContent = `Ready. Tap “Send ${plural(files.length, 'file')} now”.${note}`;
+    else if (e?.name === 'AbortError') status.textContent = `Ready when you are.${note}`;
+    else status.textContent = `The share menu didn’t open: ${e.message}`;
+  }
+}
+
 // ---------- settings ----------
 function openSettings() {
   const f = $('#settings-form');
@@ -737,6 +894,23 @@ function wire() {
     if (!storyBlob || !state.album) return;
     const file = new File([storyBlob], `${sanitizeName(titleFor(state.album))} story.png`, { type: 'image/png' });
     try { await navigator.share({ files: [file], title: titleFor(state.album) }); } catch { /* user closed the share sheet */ }
+  });
+
+  // sharing
+  $('#album-share').addEventListener('click', () => state.album && openShare(state.album));
+  $('#drive-go').addEventListener('click', driveFlow);
+  $('#drive-stop').addEventListener('click', () => share.abort?.abort());
+  $('#phone-go').addEventListener('click', phoneFlow);
+  $('#share-strip').addEventListener('change', () => { if (!share.busy) resetPhone(); });
+  $('#share-zip').addEventListener('click', () => share.album && runExport('zip', [share.album], titleFor(share.album)));
+  $('#drive-copy').addEventListener('click', async () => {
+    const f = $('#drive-link');
+    try { await navigator.clipboard.writeText(f.value); toast('Link copied.'); } catch { f.select(); toast('Select the link and copy it.'); }
+  });
+  $('#drive-send').addEventListener('click', async () => {
+    const s = share.album && shared[share.album.id];
+    if (!s) return;
+    try { await navigator.share({ title: titleFor(share.album), text: `Photos from ${titleFor(share.album)}`, url: s.link }); } catch { /* closed */ }
   });
 
   setupDrop();

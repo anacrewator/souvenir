@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>souvenir: your camera roll, sorted into trips</title>
-  <meta name="description" content="Drop in your camera roll and get it back sorted into trips, with place names. Runs in your browser, nothing gets uploaded.">
+  <meta name="description" content="Drop in your camera roll and get it back sorted into trips, with place names. Sorted in your browser. Share a trip with friends when you want to.">
   <meta property="og:title" content="souvenir">
-  <meta property="og:description" content="Your camera roll, sorted into trips. Nothing gets uploaded.">
+  <meta property="og:description" content="Your camera roll, sorted into trips, right in your browser.">
   <meta property="og:type" content="website">
   <meta name="theme-color" content="#FF6FAE">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
@@ -21,11 +21,11 @@
   <div class="ticker" aria-hidden="true">
     <div class="ticker-track">
       <span>your camera roll, sorted into trips</span><span class="tick-flower">✿</span>
-      <span>nothing gets uploaded</span><span class="tick-flower">✿</span>
+      <span>sorted on your device</span><span class="tick-flower">✿</span>
       <span>works with folders, iPhone exports and Google Takeout</span><span class="tick-flower">✿</span>
       <span>free and open source</span><span class="tick-flower">✿</span>
       <span>your camera roll, sorted into trips</span><span class="tick-flower">✿</span>
-      <span>nothing gets uploaded</span><span class="tick-flower">✿</span>
+      <span>sorted on your device</span><span class="tick-flower">✿</span>
       <span>works with folders, iPhone exports and Google Takeout</span><span class="tick-flower">✿</span>
       <span>free and open source</span><span class="tick-flower">✿</span>
     </div>
@@ -115,7 +115,7 @@
           </article>
         </div>
 
-        <p class="privacy">Your photos never leave this device. The only thing sent anywhere is the rough centre of each trip, so it can be named. You can switch that off in Settings.</p>
+        <p class="privacy">Sorting happens on this device. The only thing sent anywhere is the rough centre of each trip, so it can be named, and you can switch that off in Settings. Photos only leave when you share a trip, and only that trip.</p>
       </div>
     </section>
 
@@ -191,6 +191,7 @@
         </div>
         <div class="album-actions">
           <button class="btn btn-primary btn-small" type="button" id="album-story">Make a story card</button>
+          <button class="btn btn-small" type="button" id="album-share">Share with friends</button>
           <button class="btn btn-small" type="button" id="album-save">Save as folder</button>
           <button class="btn btn-small" type="button" id="album-zip">Download ZIP</button>
         </div>
@@ -250,6 +251,61 @@
         <button class="btn" type="button" data-close>Close</button>
         <button class="btn" type="button" id="story-download">Download image</button>
         <button class="btn btn-primary" type="button" id="story-share" hidden>Share</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Share a trip -->
+  <dialog id="share-dialog" class="small-dialog share-dialog" aria-labelledby="share-title">
+    <div class="note note-paper">
+      <h2 id="share-title">Share with friends</h2>
+      <p class="share-meta" id="share-meta"></p>
+      <label class="check">
+        <input type="checkbox" id="share-strip" checked>
+        <span>Remove the location from the files. Your friends still see the dates.</span>
+      </label>
+
+      <section class="share-way" id="way-drive" hidden>
+        <h3>Google Drive link</h3>
+        <p>Puts a copy in a new folder in your Google Drive and gives you a link. Anyone with the link can look and download, no sign-in needed.</p>
+        <div class="share-done" id="drive-done" hidden>
+          <p class="fine" id="drive-when"></p>
+          <div class="link-row">
+            <input class="link-field" id="drive-link" readonly aria-label="Link to the shared folder">
+            <button class="btn btn-small" type="button" id="drive-copy">Copy link</button>
+          </div>
+          <div class="share-buttons">
+            <button class="btn btn-small" type="button" id="drive-send" hidden>Send the link</button>
+            <a class="btn btn-small" id="drive-open" target="_blank" rel="noopener" href="#">Open in Drive</a>
+          </div>
+        </div>
+        <div class="share-progress" id="drive-progress" hidden role="status" aria-live="polite">
+          <p id="drive-status"></p>
+          <div class="busy-bar"><span></span></div>
+        </div>
+        <div class="share-buttons">
+          <button class="btn btn-primary" type="button" id="drive-go">Upload to Google Drive</button>
+          <button class="linkish" type="button" id="drive-stop" hidden>Stop</button>
+        </div>
+      </section>
+
+      <section class="share-way" id="way-phone" hidden>
+        <h3>Send from this device</h3>
+        <p>Opens the share menu, so you can send the files with WhatsApp, AirDrop, Messages and more. WhatsApp makes photos smaller; AirDrop keeps them as they are.</p>
+        <p class="fine" id="phone-status" role="status" aria-live="polite"></p>
+        <div class="share-buttons">
+          <button class="btn btn-primary" type="button" id="phone-go">Send</button>
+        </div>
+      </section>
+
+      <section class="share-way" id="way-none" hidden>
+        <h3>Send a ZIP</h3>
+        <p>Download the trip as a ZIP and send it with WeTransfer, email or a chat app.</p>
+        <div class="share-buttons"><button class="btn" type="button" id="share-zip">Download ZIP</button></div>
+      </section>
+
+      <div class="dialog-buttons">
+        <button class="btn" type="button" data-close>Close</button>
       </div>
     </div>
   </dialog>
