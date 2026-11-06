@@ -11,7 +11,7 @@ export const CONFIG = {
 
   // Optional: Google OAuth client ID. It turns on "Share with friends → Google Drive".
   // See README → "Turn on Google Drive sharing". A client ID is public; never put a secret here.
-  googleClientId: '185889613223-mkho18c5un82veme0duok8dvuutgn0bd.apps.googleusercontent.com',
+  googleClientId: '185889613223-lvrbbj92flmm983s3ae957d7uti4buvm.apps.googleusercontent.com',
 
   // Also show "Pick from Google Photos" (needs the Photos Picker API on the same client ID).
   googlePhotosPicker: false,
