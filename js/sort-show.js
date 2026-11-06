@@ -61,7 +61,7 @@ export function feedShow(item, done) {
     { transform: `translate(${(rand() - 0.5) * 60}px, -70px) rotate(${r * 2}deg) scale(1.3)`, opacity: 0 },
     { transform: `rotate(${r}deg)`, opacity: 1 },
   ], { duration: 420, easing: 'cubic-bezier(.2, 1.4, .4, 1)' });
-  thumbUrl(item).then((u) => {
+  thumbUrl(item, { urgent: true }).then((u) => {
     if (!u) return;
     const img = el('img', { alt: '' });
     img.src = u;

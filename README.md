@@ -8,6 +8,7 @@ Everything runs in your browser. Your photos are only uploaded if you choose to 
 
 ## What it does
 
+- **Fast previews, even for thousands of photos**: photos on screen get their preview first. JPG and friends are shrunk by the browser in the background. iPhone HEIC photos carry a small ready-made preview inside, and that's what the app shows, so it doesn't decode 12 megapixels for a thumbnail.
 - **Opens iPhone HEIC photos in any browser**: Chrome, Edge and Firefox can't show HEIC on their own, so the app decodes them with [libheif](https://github.com/strukturag/libheif) (through `heic-to`), in a background worker, only when it finds one.
 - **Reads the date and place inside each file**: photo EXIF (JPG, HEIC, PNG, WebP and more), video metadata (MP4 and MOV, including iPhone and Android location), Google Takeout's `.json` files, and dates in file names like `IMG_20240815_…` or WhatsApp's `IMG-20240815-WA0001`.
 - **Works out where home is**: the place you took photos on the most days. Photos far from home and close together in time become a trip. Photos without GPS join a trip when the photos around them are on it.
@@ -24,7 +25,7 @@ Everything runs in your browser. Your photos are only uploaded if you choose to 
 
 | From | How |
 | --- | --- |
-| Folders on your computer | Click **Choose a folder**, then **Add another folder** as many times as you like, and **Sort** them all together. Or drag several folders onto the page at once. |
+| Folders on your computer | Click **Choose a folder** and pick the folder that holds your trips: you get a list of the folders inside it, all ticked, so you can leave some out. Add more with **Add another folder**, then **Sort** them all together. Or drag several folders onto the page at once. |
 | Google Photos | Export with [Google Takeout](https://takeout.google.com/settings/takeout/custom/photos), unzip, choose the folder. Takeout includes dates and places. |
 | iPhone, on a Mac | In Photos: select all, then File › Export › **Export Unmodified Originals**. Choose that folder. |
 | iPhone or Android, on the phone | Tap **Choose photos**. On iPhone, if you see **Options**, turn on **Location**, or the phone strips it. |
@@ -85,6 +86,7 @@ js/metadata.js      reads dates and places from photos, videos and Takeout files
 js/cluster.js       finds home, trips and months
 js/geocode.js       turns coordinates into city names
 js/thumbs.js        previews and the photo viewer
+js/heic-thumb.js    pulls the small preview out of iPhone HEIC photos
 js/export.js        save as folders or ZIP
 js/story.js         the story card
 js/google-auth.js   Google sign-in (Google Identity Services)

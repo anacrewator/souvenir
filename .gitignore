@@ -1,4 +1,9 @@
 .DS_Store
 .claude/
-secrets/
 node_modules/
+
+# Credentials never go in the repo (this site needs none)
+secrets/
+client_secret*.json
+*.pem
+.env*

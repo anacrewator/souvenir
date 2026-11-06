@@ -648,7 +648,8 @@ function startOver() {
 
 // ---------- folders waiting to be sorted ----------
 // Browsers only let you choose one folder per click, so picks collect here and get
-// sorted together in one go.
+// sorted together in one go. Choosing a folder that holds several others opens a list
+// of them, so you can take many at once and leave out the ones you don't want.
 const basket = [];
 const mediaIn = (entries) => entries.filter((e) => ['image', 'video'].includes(kindOf(e.file))).length;
 
@@ -659,17 +660,71 @@ function labelOf(entries) {
   return 'Photos you picked';
 }
 
-function queue(entries) {
+function queue(entries, label = labelOf(entries)) {
   const count = mediaIn(entries);
   if (!count) {
     toast("That didn't include any photos or videos. Try choosing the folder that holds them.");
-    return;
+    return false;
   }
-  const label = labelOf(entries);
   const sig = `${label}|${entries.length}`;
-  if (basket.some((b) => b.sig === sig)) { toast(`${label} is already on the list.`); return; }
+  if (basket.some((b) => b.sig === sig)) { toast(`${label} is already on the list.`); return false; }
   basket.push({ label, entries, count, sig });
   renderBasket();
+  return true;
+}
+
+// A picked folder split into the folders right inside it (plus any loose photos).
+function subfolders(entries) {
+  const groups = new Map();
+  for (const e of entries) {
+    const parts = e.path.split('/');
+    const key = parts.length > 2 ? parts[1] : '';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(e);
+  }
+  const top = entries[0]?.path.split('/')[0] || '';
+  const list = [...groups].map(([name, list]) => ({ name, entries: list, count: mediaIn(list) })).filter((g) => g.count);
+  list.sort((a, b) => (a.name === '') - (b.name === '') || a.name.localeCompare(b.name, undefined, { numeric: true }));
+  return { top, list };
+}
+
+let folderChoice = null;
+
+function pickFolder(entries) {
+  const { top, list } = subfolders(entries);
+  if (list.filter((g) => g.name).length < 2) { queue(entries); return; }
+  folderChoice = { top, list };
+  $('#folders-meta').textContent = `Inside ${top}: ${plural(list.filter((g) => g.name).length, 'folder')} with photos. Untick the ones you don't want.`;
+  $('#folders-list').replaceChildren(...list.map((g, i) => el('li', {},
+    el('label', { class: 'check folder-row' },
+      el('input', { type: 'checkbox', checked: true, 'data-i': String(i) }),
+      el('span', { class: 'folder-name' }, g.name || `Loose photos in ${top}`),
+      el('span', { class: 'folder-count' }, g.count.toLocaleString())))));
+  updateFolderChoice();
+  $('#folders-dialog').showModal();
+}
+
+function updateFolderChoice() {
+  const boxes = $$('#folders-list input');
+  const on = boxes.filter((b) => b.checked);
+  const photos = on.reduce((n, b) => n + folderChoice.list[Number(b.dataset.i)].count, 0);
+  $('#folders-add').disabled = !on.length;
+  $('#folders-add').textContent = on.length ? `Add ${plural(on.length, 'folder')} (${plural(photos, 'photo')})` : 'Pick at least one';
+  $('#folders-all').textContent = on.length === boxes.length ? 'Untick all' : 'Tick all';
+}
+
+function addChosenFolders() {
+  if (!folderChoice) return;
+  const { top, list } = folderChoice;
+  let added = 0;
+  for (const b of $$('#folders-list input')) {
+    if (!b.checked) continue;
+    const g = list[Number(b.dataset.i)];
+    if (queue(g.entries, g.name || `Loose photos in ${top}`)) added++;
+  }
+  folderChoice = null;
+  $('#folders-dialog').close();
+  if (added) $('#basket-sort').focus();
 }
 
 function renderBasket() {
@@ -681,7 +736,7 @@ function renderBasket() {
   $('#dz-big').textContent = has ? 'Add more, or sort what’s here' : 'Drop folders or a pile of photos here';
   $('#dz-small').textContent = has
     ? 'You can also drag several folders in at once.'
-    : 'Add as many folders as you like, then sort them together. JPG, HEIC, PNG, MP4, MOV and more.';
+    : 'To take several folders at once, choose the folder that holds them. JPG, HEIC, PNG, MP4, MOV and more.';
   const total = basket.reduce((s, b) => s + b.count, 0);
   $('#basket-sort').textContent = `Sort ${plural(total, 'photo')}`;
   $('#basket-list').replaceChildren(...basket.map((b, i) => el('li', { class: 'basket-chip' },
@@ -791,7 +846,7 @@ function wire() {
   const folderInput = $('#pick-folder');
   if (!('webkitdirectory' in folderInput)) $('#pick-folder-label').hidden = true;
   folderInput.addEventListener('change', (e) => {
-    queue([...e.target.files].map((f) => ({ file: f, path: f.webkitRelativePath || f.name })));
+    pickFolder([...e.target.files].map((f) => ({ file: f, path: f.webkitRelativePath || f.name })));
     e.target.value = '';
   });
   $('#pick-files').addEventListener('change', (e) => {
@@ -799,6 +854,15 @@ function wire() {
     e.target.value = '';
   });
   $('#basket-sort').addEventListener('click', sortBasket);
+  $('#folders-list').addEventListener('change', updateFolderChoice);
+  $('#folders-all').addEventListener('click', () => {
+    const boxes = $$('#folders-list input');
+    const to = !boxes.every((b) => b.checked);
+    boxes.forEach((b) => { b.checked = to; });
+    updateFolderChoice();
+  });
+  $('#folders-add').addEventListener('click', addChosenFolders);
+  $('#folders-dialog').addEventListener('close', () => { folderChoice = null; });
   $('#basket-clear').addEventListener('click', () => { basket.length = 0; renderBasket(); });
   $('#basket-list').addEventListener('click', (e) => {
     const x = e.target.closest('.basket-x');

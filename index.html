@@ -83,7 +83,7 @@
               <button class="linkish" type="button" id="basket-clear">Clear the list</button>
             </div>
           </div>
-          <p class="dz-small" id="dz-small">Add as many folders as you like, then sort them together. JPG, HEIC, PNG, MP4, MOV and more.</p>
+          <p class="dz-small" id="dz-small">To take several folders at once, choose the folder that holds them. JPG, HEIC, PNG, MP4, MOV and more.</p>
         </div>
 
         <div class="sources">
@@ -256,6 +256,19 @@
   </dialog>
 
   <!-- Share a trip -->
+  <dialog id="folders-dialog" class="small-dialog" aria-labelledby="folders-title">
+    <form method="dialog" class="note note-paper">
+      <h2 id="folders-title">Which folders?</h2>
+      <p class="share-meta" id="folders-meta"></p>
+      <button class="linkish" type="button" id="folders-all">Untick all</button>
+      <ul class="folders-list" id="folders-list"></ul>
+      <div class="share-buttons">
+        <button class="btn btn-primary" type="button" id="folders-add" autofocus>Add them</button>
+        <button class="linkish" value="cancel">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="share-dialog" class="small-dialog share-dialog" aria-labelledby="share-title">
     <div class="note note-paper">
       <h2 id="share-title">Share with friends</h2>

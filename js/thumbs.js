@@ -1,18 +1,24 @@
 // Small previews, made on demand as they scroll into view, a few at a time.
 import { exifr } from './metadata.js';
 import { el } from './util.js';
+import { heicThumbnail } from './heic-thumb.js';
 
 const registry = new Map();
 const thumbs = new Map(); // id -> Promise<url|null>
 const urls = new Set();
 
-export const register = (item) => registry.set(item.id, item);
+export function register(item) {
+  registry.set(item.id, item);
+  if (item.file && browserOpensHeic !== true && looksHeic(item.file, item.name)) loadHeic().catch(() => {});
+}
 export const itemById = (id) => registry.get(id);
 
 export function resetThumbs() {
   urls.forEach((u) => URL.revokeObjectURL(u));
   urls.clear();
   thumbs.clear();
+  jobs.length = 0;
+  tilesOf.clear();
   registry.clear();
 }
 
@@ -23,15 +29,30 @@ function track(blob) {
   return u;
 }
 
+// Work queue. Tiles on screen go first (newest first), so scrolling never leaves you
+// waiting behind photos you've already passed. Off-screen ones fill in afterwards.
+const MAX_AT_ONCE = Math.max(2, Math.min(6, (navigator.hardwareConcurrency || 4) - 1));
 let active = 0;
-const waiting = [];
-function slot(fn) {
+const jobs = [];
+const near = new WeakSet(); // tiles on (or almost on) screen
+const tilesOf = new Map(); // id -> Set of tile nodes
+
+const wanted = (job) => job.urgent || [...(tilesOf.get(job.id) || [])].some((n) => near.has(n) && n.isConnected);
+
+function pump() {
+  while (active < MAX_AT_ONCE && jobs.length) {
+    let i = jobs.length - 1;
+    for (let k = jobs.length - 1; k >= 0; k--) if (wanted(jobs[k])) { i = k; break; }
+    const [job] = jobs.splice(i, 1);
+    active++;
+    job.run().finally(() => { active--; pump(); });
+  }
+}
+
+function slot(id, fn, urgent) {
   return new Promise((resolve, reject) => {
-    const run = async () => {
-      active++;
-      try { resolve(await fn()); } catch (e) { reject(e); } finally { active--; waiting.shift()?.(); }
-    };
-    if (active < 4) run(); else waiting.push(run);
+    jobs.push({ id, urgent, run: () => fn().then(resolve, reject) });
+    queueMicrotask(pump);
   });
 }
 
@@ -49,42 +70,69 @@ async function embeddedThumb(blob) {
   return t ? new Blob([t], { type: 'image/jpeg' }) : null;
 }
 
-// Chrome, Firefox and Edge can't open iPhone HEIC photos, and iPhones don't tuck a JPEG
-// preview inside them. So those get decoded with libheif (via heic-to), loaded only when
-// the first HEIC shows up. It decodes in a background worker, so scrolling stays smooth.
+// Chrome, Firefox and Edge can't open iPhone HEIC photos. For previews, the small picture
+// the iPhone saves inside each HEIC is decoded (a few milliseconds). Only when there's
+// none, or for the full-size view, the whole photo is decoded with libheif (via heic-to),
+// in a background worker. The library loads as soon as the first HEIC shows up.
 const HEIC_LIB = 'https://cdn.jsdelivr.net/npm/heic-to@1.6.6/dist/heic-to.js';
 let heicLib = null;
 const loadHeic = () => (heicLib ??= import(HEIC_LIB).catch((e) => { heicLib = null; throw e; }));
 const HEIC_EXT = /\.(heic|heif)$/i;
 const looksHeic = (blob, name = '') => HEIC_EXT.test(name || blob.name || '') || /hei[cf]/i.test(blob.type || '');
+let browserOpensHeic = null; // learnt from the first HEIC: true in Safari, false elsewhere
 
-async function heicScaled(blob, size) {
+async function heicBitmapBlob(blob, size) {
   const { heicTo } = await loadHeic();
   const bmp = await heicTo({ blob, type: 'bitmap' });
   try { return await drawScaled(bmp, bmp.width, bmp.height, size); } finally { bmp.close?.(); }
 }
+const heicScaled = heicBitmapBlob;
 
-// Opens any photo the browser can't: HEIC through libheif, then the camera's own small preview.
-async function fallbackImage(blob, size, name) {
-  if (looksHeic(blob, name)) {
-    const b = await heicScaled(blob, size).catch(() => null);
+async function heicPreview(blob, size) {
+  const small = await heicThumbnail(blob).catch(() => null);
+  if (small) {
+    const b = await heicBitmapBlob(small, size).catch(() => null);
     if (b) return b;
   }
-  return embeddedThumb(blob);
+  return heicBitmapBlob(blob, size);
 }
 
-async function imageThumb(blob, size, name) {
+// The browser decodes and shrinks the photo in the background, off the page's main thread.
+async function browserScaled(blob, size) {
+  const bmp = await createImageBitmap(blob, { resizeHeight: size, resizeQuality: 'medium', imageOrientation: 'from-image' });
+  try { return await drawScaled(bmp, bmp.width, bmp.height, Math.round(size * 4 / 3)); } finally { bmp.close?.(); }
+}
+
+async function viaImg(blob, size) {
   const url = URL.createObjectURL(blob);
   try {
     const img = new Image();
     img.src = url;
     await img.decode();
-    return track(await drawScaled(img, img.naturalWidth, img.naturalHeight, size));
-  } catch {
-    return track(await fallbackImage(blob, size, name));
-  } finally {
-    URL.revokeObjectURL(url);
+    return await drawScaled(img, img.naturalWidth, img.naturalHeight, size);
+  } finally { URL.revokeObjectURL(url); }
+}
+
+async function imageThumb(blob, size, name) {
+  const heic = looksHeic(blob, name);
+  if (!heic || browserOpensHeic !== false) {
+    try {
+      const b = 'createImageBitmap' in window ? await browserScaled(blob, Math.round(size * 0.75)) : await viaImg(blob, size);
+      if (heic) browserOpensHeic = true;
+      return track(b);
+    } catch {
+      if (heic && browserOpensHeic == null) browserOpensHeic = false;
+    }
+    if (!heic) {
+      const b = await viaImg(blob, size).catch(() => null);
+      if (b) return track(b);
+    }
   }
+  if (heic) {
+    const b = await heicPreview(blob, size).catch(() => null);
+    if (b) return track(b);
+  }
+  return track(await embeddedThumb(blob));
 }
 
 function videoThumb(file, size) {
@@ -114,13 +162,13 @@ function videoThumb(file, size) {
   });
 }
 
-export function thumbUrl(item, size = 480) {
+export function thumbUrl(item, { size = 480, urgent = false } = {}) {
   if (!thumbs.has(item.id)) {
-    thumbs.set(item.id, slot(async () => {
+    thumbs.set(item.id, slot(item.id, async () => {
       if (item.fetchThumb) return track(await item.fetchThumb());
       if (item.kind === 'video') return videoThumb(item.file, size);
       return imageThumb(item.file, size, item.name);
-    }).catch(() => null));
+    }, urgent).catch(() => null));
   }
   return thumbs.get(item.id);
 }
@@ -129,6 +177,8 @@ async function fill(node) {
   const item = registry.get(node.dataset.id);
   if (!item) return;
   const url = await thumbUrl(item);
+  io?.unobserve(node);
+  tilesOf.get(item.id)?.delete(node);
   if (!url) { node.classList.add('broken'); return; }
   const img = el('img', { alt: '', decoding: 'async', draggable: 'false' });
   img.onload = () => node.classList.add('ready');
@@ -138,14 +188,22 @@ async function fill(node) {
 
 const io = 'IntersectionObserver' in window
   ? new IntersectionObserver((entries) => {
+      let changed = false;
       for (const e of entries) {
-        if (e.isIntersecting) { io.unobserve(e.target); fill(e.target); }
+        if (e.isIntersecting) {
+          near.add(e.target);
+          changed = true;
+          if (!e.target.dataset.asked) { e.target.dataset.asked = '1'; fill(e.target); }
+        } else near.delete(e.target);
       }
-    }, { rootMargin: '500px 0px' })
+      if (changed) pump();
+    }, { rootMargin: '300px 0px' })
   : null;
 
 export function thumbNode(item, extraClass = '') {
   const node = el('div', { class: `thumb ${item.kind === 'video' ? 'is-video' : ''} ${extraClass}`.trim(), 'data-id': item.id });
+  if (!tilesOf.has(item.id)) tilesOf.set(item.id, new Set());
+  tilesOf.get(item.id).add(node);
   if (io) io.observe(node); else fill(node);
   return node;
 }

@@ -759,3 +759,13 @@ body.dragging .drop-veil { opacity: 1; }
   .pile-count { font-size: .78rem; }
   .show-card { width: 72px; padding: 5px 5px 13px; }
 }
+
+/* Choosing several folders from inside one */
+.folders-list { list-style: none; margin: 10px 0 0; padding: 4px 2px; max-height: min(46vh, 420px); overflow-y: auto; border-top: 2px dashed rgba(42, 20, 32, .3); border-bottom: 2px dashed rgba(42, 20, 32, .3); }
+.folders-list .folder-row { margin: 0; padding: 9px 4px; align-items: center; cursor: pointer; border-radius: 6px; }
+.folders-list .folder-row:hover { background: rgba(255, 255, 255, .55); }
+.folders-list .folder-row input { margin-top: 0; }
+.folder-name { flex: 1; min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
+.folder-count { font-size: .9rem; opacity: .7; white-space: nowrap; }
+#folders-all { margin-top: 2px; }
+#folders-add:disabled { opacity: .55; cursor: not-allowed; }
