@@ -9,12 +9,12 @@ const tokens = new Map(); // scope -> { token, expires }
 export const googleConfigured = () => Boolean(CONFIG.googleClientId);
 
 // Load early (e.g. when a dialog opens), so the sign-in popup opens straight from the click.
-export const preloadGoogle = () => (googleConfigured() ? loadScript(GIS).catch(() => {}) : Promise.resolve());
+export const preloadGoogle = () => (googleConfigured() ? loadScript(GIS, { cors: false }).catch(() => {}) : Promise.resolve());
 
 export async function getToken(scope) {
   const t = tokens.get(scope);
   if (t && Date.now() < t.expires) return t.token;
-  await loadScript(GIS);
+  await loadScript(GIS, { cors: false });
   return new Promise((resolve, reject) => {
     const client = window.google.accounts.oauth2.initTokenClient({
       client_id: CONFIG.googleClientId,

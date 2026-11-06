@@ -60,10 +60,11 @@ export function spanDays(a, b) {
 }
 
 const loaded = new Map();
-export function loadScript(src) {
+// cors: false for scripts whose server doesn't send CORS headers (Google sign-in).
+export function loadScript(src, { cors = true } = {}) {
   if (!loaded.has(src)) {
     loaded.set(src, new Promise((res, rej) => {
-      const s = el('script', { src, async: true, crossorigin: 'anonymous' });
+      const s = el('script', cors ? { src, async: true, crossorigin: 'anonymous' } : { src, async: true });
       s.onload = res;
       s.onerror = () => { loaded.delete(src); rej(new Error(`Couldn't load ${src}`)); };
       document.head.append(s);
